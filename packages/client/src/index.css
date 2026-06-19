@@ -1,0 +1,342 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* -----------------------------------------------------------------------
+ * Design tokens (DESIGN.md, jarvis-2026-06-02).
+ * --------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+
+  /* shadcn/ui theme tokens — mapped to JARVIS neon palette */
+  --radius: 0.5rem;
+  --background: #0a0a0f;
+  --foreground: #e0e0e0;
+  --card: #111122;
+  --card-foreground: #e0e0e0;
+  --popover: #111122;
+  --popover-foreground: #e0e0e0;
+  --primary: #00f0ff;
+  --primary-foreground: #0a0a0f;
+  --secondary: #1a1a2e;
+  --secondary-foreground: #e0e0e0;
+  --muted: #1a1a2e;
+  --muted-foreground: #556677;
+  --accent: #1a1a2e;
+  --accent-foreground: #e0e0e0;
+  --destructive: #ff3344;
+  --destructive-foreground: #e0e0e0;
+  --border: rgba(0, 240, 255, 0.15);
+  --input: rgba(0, 240, 255, 0.3);
+  --ring: #00f0ff;
+
+  /* Backgrounds */
+  --bg-deep: #0a0a0f;
+  --bg-panel: #111122;
+  --bg-elevated: #1a1a2e;
+
+  /* Neon accents */
+  --neon-cyan: #00f0ff;
+  --neon-cyan-dim: #88ccdd;
+  --neon-amber: #ff8c00;
+  --neon-amber-warn: #ffaa00;
+  --neon-red: #ff3344;
+
+  /* Text */
+  --text-primary: #e0e0e0;
+  --text-secondary: #88ccdd;
+  --text-muted: #556677;
+
+  /* Voice / brain states */
+  --state-idle: #1a3a4a;
+  --state-listening: #00f0ff;
+  --state-thinking: #0088cc;
+  --state-speaking: #00cc88;
+  --state-error: #ff3344;
+
+  /* Borders & shapes */
+  --border-glow: 1px solid var(--neon-cyan);
+  --border-panel: 1px solid rgba(0, 240, 255, 0.15);
+  --border-input: 1px solid rgba(0, 240, 255, 0.3);
+
+  /* Rounded */
+  --rounded-widget: 8px;
+  --rounded-panel: 6px;
+  --rounded-button: 6px;
+  --rounded-input: 6px;
+
+  /* Typography */
+  --font-mono: "JetBrains Mono", "Fira Code", "Menlo", "Consolas", monospace;
+  --font-ui: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  font-family: var(--font-ui);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* -----------------------------------------------------------------------
+ * Auth gate — login card (DESIGN.md → "Auth Gate").
+ *
+ *   400×280 card on bg.deep with shapes.glow-soft. Title in neon cyan
+ *   at typography.ui.title (24px). Password input with dim→cyan
+ *   border on focus. "Enter" button with neon border, glow on hover.
+ *   Wrong-password feedback: card shakes 3 times (±5px) over 300ms
+ *   and an error line in neon.red appears below the input.
+ * --------------------------------------------------------------------- */
+
+.jarvis-auth-card {
+  position: relative;
+  z-index: 1;
+  width: 400px;
+  height: 280px;
+  padding: 22px 26px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  background:
+    linear-gradient(180deg, rgba(0, 240, 255, 0.03) 0%, transparent 60%),
+    var(--bg-deep);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: var(--rounded-widget);
+  box-shadow:
+    0 0 8px rgba(0, 240, 255, 0.15),
+    inset 0 0 24px rgba(0, 240, 255, 0.04);
+}
+
+.jarvis-auth-shake {
+  animation: jarvis-shake 300ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes jarvis-shake {
+  0%, 100% { transform: translateX(0); }
+  15%      { transform: translateX(-5px); }
+  45%      { transform: translateX(5px); }
+  75%      { transform: translateX(-5px); }
+}
+
+/* ----- Title ---------------------------------------------------------- */
+
+.jarvis-auth-title {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 24px;          /* typography.ui.title */
+  letter-spacing: 0.4em;
+  text-align: center;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+}
+
+/* ----- Field (label + input + error) ---------------------------------- */
+
+.jarvis-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 0;
+}
+
+.jarvis-auth-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.jarvis-auth-inputwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-panel);
+  border: var(--border-input);                /* dim cyan */
+  border-radius: var(--rounded-input);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.jarvis-auth-inputwrap--focus {
+  border-color: var(--neon-cyan);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); /* shapes.glow-soft */
+}
+
+.jarvis-auth-inputwrap--error {
+  border-color: var(--neon-red);
+  box-shadow: 0 0 8px rgba(255, 51, 68, 0.35);
+}
+
+.jarvis-auth-input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.05em;
+}
+
+.jarvis-auth-input::placeholder {
+  color: var(--text-muted);
+}
+
+.jarvis-auth-input:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.jarvis-auth-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 2px;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.jarvis-auth-toggle:hover {
+  color: var(--neon-cyan);
+  background: var(--bg-elevated);
+}
+
+.jarvis-auth-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.jarvis-auth-error {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--neon-red);
+  text-shadow: 0 0 6px rgba(255, 51, 68, 0.45);
+  min-height: 14px; /* reserve space so the layout doesn't jump */
+}
+
+/* ----- Submit button -------------------------------------------------- */
+
+.jarvis-auth-button {
+  height: 40px;
+  background: transparent;
+  border: 1px solid var(--neon-cyan);
+  border-radius: var(--rounded-button);
+  color: var(--neon-cyan);
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: 14px;          /* typography.ui.base */
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.jarvis-auth-button:hover:not(:disabled) {
+  background: rgba(0, 240, 255, 0.08);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.3); /* shapes.glow-medium */
+}
+
+.jarvis-auth-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.45);
+}
+
+.jarvis-auth-button:disabled {
+  color: var(--text-muted);
+  border-color: rgba(0, 240, 255, 0.25);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ----- Loading spinner (replaces button label during submit) --------- */
+
+.jarvis-auth-spinner {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.jarvis-auth-spinner span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: jarvis-auth-bounce 0.9s ease-in-out infinite;
+}
+
+.jarvis-auth-spinner span:nth-child(2) { animation-delay: 0.15s; }
+.jarvis-auth-spinner span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes jarvis-auth-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
+}

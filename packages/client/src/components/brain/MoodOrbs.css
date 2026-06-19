@@ -1,0 +1,382 @@
+/* -----------------------------------------------------------------------
+ * MoodOrbs — SVG blob visualization with 6 colour palettes.
+ *
+ * State-driven behaviour:
+ *   idle       → slow ambient drift, no jitter
+ *   listening  → faster rotation, gentle pulse
+ *   processing → accelerated morph, moderate procedural jitter
+ *   speaking   → fast rotation, hybrid jitter (audio RMS + procedural)
+ *   error      → chaotic flicker, stutter morph
+ *
+ * Jitter is applied via CSS custom properties set by the JS RAF loop:
+ *   --jx-1..8  horizontal offset in px
+ *   --jy-1..8  vertical offset in px
+ *   --js-1..8  scale multiplier (centred on 1)
+ * --------------------------------------------------------------------- */
+
+/* ----- Palettes (global, on the shell so all containers inherit) ------ */
+
+.jarvis-shell.palette-1 {
+  --mo-bg-0: #101030;
+  --mo-bg-1: #050515;
+  --mo-blob-1: #984ddf;
+  --mo-blob-2: #4344ad;
+  --mo-blob-3: #74d9e1;
+  --mo-blob-4: #050515;
+  --bg-deep: #050515;
+  --bg-panel: #101030;
+  --bg-elevated: #181838;
+}
+.jarvis-shell.palette-2 {
+  --mo-bg-0: #545454;
+  --mo-bg-1: #150513;
+  --mo-blob-1: #ff3838;
+  --mo-blob-2: #ff9d7c;
+  --mo-blob-3: #ffdda0;
+  --mo-blob-4: #fff6ea;
+  --bg-deep: #150513;
+  --bg-panel: #252020;
+  --bg-elevated: #352828;
+}
+.jarvis-shell.palette-3 {
+  --mo-bg-0: #300030;
+  --mo-bg-1: #000000;
+  --mo-blob-1: #291528;
+  --mo-blob-2: #3a3e3b;
+  --mo-blob-3: #9e829c;
+  --mo-blob-4: #f0eff4;
+  --bg-deep: #000000;
+  --bg-panel: #1a0a1a;
+  --bg-elevated: #2a1a2a;
+}
+.jarvis-shell.palette-4 {
+  --mo-bg-0: #ffffff;
+  --mo-bg-1: #d3f7ff;
+  --mo-blob-1: #bb74ff;
+  --mo-blob-2: #7c7dff;
+  --mo-blob-3: #a0f8ff;
+  --mo-blob-4: #ffffff;
+  --bg-deep: #d3f7ff;
+  --bg-panel: #eefbff;
+  --bg-elevated: #ffffff;
+  --text-primary: #0a1220;
+  --text-secondary: #2a3a58;
+  --text-muted: #5a6a88;
+  --border-panel: 1px solid rgba(0, 0, 0, 0.1);
+  --border-input: 1px solid rgba(0, 40, 80, 0.25);
+}
+.jarvis-shell.palette-5 {
+  --mo-bg-0: #968e85;
+  --mo-bg-1: #8cc084;
+  --mo-blob-1: #c1d7ae;
+  --mo-blob-2: #9eff72;
+  --mo-blob-3: #ffcab1;
+  --mo-blob-4: #ecdcb0;
+  --bg-deep: #8cc084;
+  --bg-panel: #a2d49a;
+  --bg-elevated: #b8e8b0;
+  --text-primary: #0a1a0a;
+  --text-secondary: #2a3a2a;
+  --text-muted: #4a6a4a;
+  --border-panel: 1px solid rgba(0, 20, 0, 0.1);
+  --border-input: 1px solid rgba(0, 40, 0, 0.2);
+}
+.jarvis-shell.palette-6 {
+  --mo-bg-0: #ffffff;
+  --mo-bg-1: #4e598c;
+  --mo-blob-1: #ff8c42;
+  --mo-blob-2: #fcaf58;
+  --mo-blob-3: #f9c784;
+  --mo-blob-4: #ffffff;
+  --bg-deep: #4e598c;
+  --bg-panel: #5e698c;
+  --bg-elevated: #6e799c;
+  --text-primary: #f0f0f8;
+  --text-secondary: #bbc0d8;
+  --text-muted: #8890b0;
+  --border-panel: 1px solid rgba(255, 255, 255, 0.12);
+  --border-input: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* ----- Container ------------------------------------------------------ */
+
+.moodorbs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--rounded-widget);
+}
+
+.moodorbs::after {
+  position: absolute;
+  content: "";
+  width: min(45vw, 45vh);
+  height: min(45vw, 45vh);
+  background: var(--mo-bg-0);
+  border-radius: 50%;
+  filter: blur(8rem);
+  transition: background 500ms ease;
+}
+
+/* ----- Blobs SVG ------------------------------------------------------ */
+
+.moodorbs__blobs {
+  width: min(55vw, 55vh);
+  height: min(55vw, 55vh);
+  max-height: 100%;
+  max-width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.moodorbs__blobs svg {
+  width: 100%;
+  height: 100%;
+}
+
+.moodorbs__blobs .blob {
+  animation: mo-rotate 25s infinite alternate ease-in-out;
+  transform-origin: 50% 50%;
+  opacity: 0.7;
+  transition: translate 80ms ease-out, scale 80ms ease-out;
+}
+
+.moodorbs__blobs .blob path {
+  transform-origin: 50% 50%;
+  transition: fill 800ms ease, scale 80ms ease-out;
+}
+
+.moodorbs__blobs .blob.alt {
+  animation-direction: alternate-reverse;
+  opacity: 0.3;
+}
+
+/* Per-blob fill colours */
+.moodorbs__blobs .blob-1 path { fill: var(--mo-blob-1); filter: blur(1rem); }
+.moodorbs__blobs .blob-2 { animation-duration: 18s; animation-direction: alternate-reverse; }
+.moodorbs__blobs .blob-2 path { fill: var(--mo-blob-2); filter: blur(0.75rem); }
+.moodorbs__blobs .blob-2.alt { animation-direction: alternate; }
+.moodorbs__blobs .blob-3 { animation-duration: 23s; }
+.moodorbs__blobs .blob-3 path { fill: var(--mo-blob-3); filter: blur(0.5rem); }
+.moodorbs__blobs .blob-4 { animation-duration: 31s; animation-direction: alternate-reverse; opacity: 0.9; }
+.moodorbs__blobs .blob-4 path { fill: var(--mo-blob-4); filter: blur(10rem); }
+.moodorbs__blobs .blob-4.alt { animation-direction: alternate; opacity: 0.8; }
+
+/* ---- Jitter (driven by JS custom props) ---- */
+.moodorbs__blobs .blob-1 { translate: calc(var(--jx-1, 0) * 1px) calc(var(--jy-1, 0) * 1px); }
+.moodorbs__blobs .blob-1 path { scale: calc(var(--js-1, 1) * 0.80); }
+.moodorbs__blobs .blob-2 { translate: calc(var(--jx-2, 0) * 1px) calc(var(--jy-2, 0) * 1px); }
+.moodorbs__blobs .blob-2 path { scale: calc(var(--js-2, 1) * 0.78); }
+.moodorbs__blobs .blob-3 { translate: calc(var(--jx-3, 0) * 1px) calc(var(--jy-3, 0) * 1px); }
+.moodorbs__blobs .blob-3 path { scale: calc(var(--js-3, 1) * 0.76); }
+.moodorbs__blobs .blob-4 { translate: calc(var(--jx-4, 0) * 1px) calc(var(--jy-4, 0) * 1px); }
+.moodorbs__blobs .blob-4 path { scale: calc(var(--js-4, 1) * 0.50); }
+.moodorbs__blobs .blob-1.alt { translate: calc(var(--jx-5, 0) * 1px) calc(var(--jy-5, 0) * 1px); }
+.moodorbs__blobs .blob-1.alt path { scale: calc(var(--js-5, 1) * 0.80); }
+.moodorbs__blobs .blob-2.alt { translate: calc(var(--jx-6, 0) * 1px) calc(var(--jy-6, 0) * 1px); }
+.moodorbs__blobs .blob-2.alt path { scale: calc(var(--js-6, 1) * 0.78); }
+.moodorbs__blobs .blob-3.alt { translate: calc(var(--jx-7, 0) * 1px) calc(var(--jy-7, 0) * 1px); }
+.moodorbs__blobs .blob-3.alt path { scale: calc(var(--js-7, 1) * 0.76); }
+.moodorbs__blobs .blob-4.alt { translate: calc(var(--jx-8, 0) * 1px) calc(var(--jy-8, 0) * 1px); }
+.moodorbs__blobs .blob-4.alt path { scale: calc(var(--js-8, 1) * 0.50); }
+
+/* ---- Caption (subtle state label at the centre) ---- */
+.moodorbs__caption {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  pointer-events: none;
+}
+.moodorbs__caption span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  background: rgba(10, 10, 15, 0.5);
+  padding: 4px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+  transition: color 400ms ease;
+}
+
+/* ----- Blob morph keyframes ------------------------------------------- */
+
+.moodorbs__blobs .blob-1 path {
+  animation: mo-morph-1 5s infinite alternate cubic-bezier(0.45, 0.2, 0.55, 0.8);
+}
+.moodorbs__blobs .blob-2 path {
+  animation: mo-morph-2 7s infinite alternate cubic-bezier(0.45, 0.2, 0.55, 0.8);
+}
+.moodorbs__blobs .blob-3 path {
+  animation: mo-morph-3 6s infinite alternate cubic-bezier(0.45, 0.2, 0.55, 0.8);
+}
+.moodorbs__blobs .blob-4 path {
+  animation: mo-morph-4 10s infinite alternate cubic-bezier(0.45, 0.2, 0.55, 0.8);
+}
+
+@keyframes mo-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes mo-morph-1 {
+  0%   { d: path("M 100 600 q 0 -500, 500 -500 t 500 500 t -500 500 T 100 600 z"); }
+  30%  { d: path("M 100 600 q -50 -400, 500 -500 t 450 550 t -500 500 T 100 600 z"); }
+  70%  { d: path("M 100 600 q 0 -400, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+  100% { d: path("M 150 600 q 0 -600, 500 -500 t 500 550 t -500 500 T 150 600 z"); }
+}
+@keyframes mo-morph-2 {
+  0%   { d: path("M 100 600 q 0 -400, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+  40%  { d: path("M 150 600 q 0 -600, 500 -500 t 500 550 t -500 500 T 150 600 z"); }
+  80%  { d: path("M 100 600 q -50 -400, 500 -500 t 450 550 t -500 500 T 100 600 z"); }
+  100% { d: path("M 100 600 q 100 -600, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+}
+@keyframes mo-morph-3 {
+  0%   { d: path("M 100 600 q -50 -400, 500 -500 t 450 550 t -500 500 T 100 600 z"); }
+  35%  { d: path("M 150 600 q 0 -600, 500 -500 t 500 550 t -500 500 T 150 600 z"); }
+  75%  { d: path("M 100 600 q 100 -600, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+  100% { d: path("M 100 600 q 0 -400, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+}
+@keyframes mo-morph-4 {
+  0%   { d: path("M 150 600 q 0 -600, 500 -500 t 500 550 t -500 500 T 150 600 z"); }
+  30%  { d: path("M 100 600 q 100 -600, 500 -500 t 400 500 t -500 500 T 100 600 z"); }
+  70%  { d: path("M 100 600 q -50 -400, 500 -500 t 450 550 t -500 500 T 100 600 z"); }
+  100% { d: path("M 150 600 q 0 -600, 500 -500 t 500 550 t -500 500 T 150 600 z"); }
+}
+
+/* ----- State overrides ------------------------------------------------ */
+
+/* idle — default speeds, no overrides */
+
+/* listening — faster rotation, energetic glow */
+.moodorbs--listening .blob-1 { animation-duration: 15s; }
+.moodorbs--listening .blob-2 { animation-duration: 12s; }
+.moodorbs--listening .blob-3 { animation-duration: 14s; }
+.moodorbs--listening .blob-4 { animation-duration: 20s; }
+.moodorbs--listening::after {
+  filter: blur(8rem) brightness(1.3);
+}
+.moodorbs--listening .blob path {
+  animation-duration: 3s;
+}
+
+/* processing — accelerated morph, moderate jitter via classes */
+.moodorbs--processing .blob-1 { animation-duration: 10s; }
+.moodorbs--processing .blob-2 { animation-duration: 8s; }
+.moodorbs--processing .blob-3 { animation-duration: 9s; }
+.moodorbs--processing .blob-4 { animation-duration: 14s; }
+.moodorbs--processing .blob path {
+  animation-duration: 3.5s;
+}
+.moodorbs--processing::after {
+  filter: blur(8rem) brightness(1.15);
+}
+
+/* speaking — fastest rotation, ready for jitter */
+.moodorbs--speaking .blob-1 { animation-duration: 8s; }
+.moodorbs--speaking .blob-2 { animation-duration: 6s; }
+.moodorbs--speaking .blob-3 { animation-duration: 7s; }
+.moodorbs--speaking .blob-4 { animation-duration: 11s; }
+.moodorbs--speaking .blob path {
+  animation-duration: 2.5s;
+}
+.moodorbs--speaking::after {
+  filter: blur(8rem) brightness(1.4);
+}
+.moodorbs--speaking .blob {
+  opacity: 0.85;
+}
+.moodorbs--speaking .blob.alt {
+  opacity: 0.45;
+}
+
+/* error — chaotic flicker */
+.moodorbs--error .blob {
+  animation: mo-rotate 1.5s steps(4) infinite alternate !important;
+}
+.moodorbs--error .blob path {
+  animation-duration: 0.6s !important;
+}
+.moodorbs--error::after {
+  filter: blur(8rem) brightness(0.6) saturate(0.3);
+}
+.moodorbs--error .blob-1 path { fill: var(--neon-red); }
+.moodorbs--error .blob-2 path { fill: var(--neon-red); }
+.moodorbs--error .blob-3 path { fill: var(--neon-red); }
+.moodorbs--error .blob-4 path { fill: var(--neon-red); }
+.moodorbs--error .moodorbs__caption span {
+  color: var(--neon-red);
+}
+
+/* offline — agent subprocess not ready; freeze + desaturate the brain
+ * so the user can tell at a glance that commands won't be processed.
+ * Visually distinct from `error` (red/chaotic) and `idle` (full color):
+ * grayscale, dim, slow rotation, large muted "AGENT OFFLINE" badge. */
+.moodorbs--offline .blob {
+  filter: grayscale(0.95) brightness(0.55);
+  opacity: 0.35;
+  animation-duration: 90s !important;
+}
+.moodorbs--offline .blob.alt {
+  opacity: 0.18;
+}
+.moodorbs--offline .blob path {
+  filter: grayscale(0.95);
+  animation: none !important;
+}
+.moodorbs--offline::after {
+  filter: blur(8rem) brightness(0.35) saturate(0);
+}
+.moodorbs--offline::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0) 0px,
+      rgba(0, 0, 0, 0) 3px,
+      rgba(0, 0, 0, 0.18) 3px,
+      rgba(0, 0, 0, 0.18) 4px
+    );
+  pointer-events: none;
+  border-radius: var(--rounded-widget);
+}
+.moodorbs--offline .moodorbs__caption {
+  z-index: 4;
+}
+.moodorbs--offline .moodorbs__caption span {
+  font-size: 13px;
+  letter-spacing: 0.42em;
+  padding: 8px 18px;
+  color: var(--text-muted);
+  background: rgba(8, 8, 12, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+  text-transform: uppercase;
+  animation: mo-offline-pulse 2.4s ease-in-out infinite;
+}
+.moodorbs--offline .moodorbs__caption span::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.15);
+}
+
+@keyframes mo-offline-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1;    }
+}

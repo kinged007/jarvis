@@ -1,0 +1,6 @@
+# Core config (TOML format for resolve_config.py)
+user_name = "Josh"
+project_name = "jarvis"
+communication_language = "English"
+document_output_language = "English"
+output_folder = "_bmad-output"

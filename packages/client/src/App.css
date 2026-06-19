@@ -1,0 +1,424 @@
+/* -----------------------------------------------------------------------
+ * JARVIS client shell — two-zone dashboard with shortcut bar.
+ *
+ * Layout:
+ *   ┌─────────────────── status bar (32px) ───────────────────┐
+ *   │       widgets (280px)     │        brain zone           │
+ *   │                           │   ┌── brain circle ──┐      │
+ *   │                           │   │                  │      │
+ *   │                           │   └──────────────────┘      │
+ *   │                           │   [📜] [⬛] [⚙]  shortcuts  │
+ *   ├───────────────── voice bar (40px) ──────────────────────┤
+ *   │ [🎤]             input (36px)                           │
+ *   └────────────────────────────────────────────────────────┘
+ * Colors and spacing follow the design tokens; the actual token
+ * values live in index.css so they can be theme-swapped in one place.
+ * --------------------------------------------------------------------- */
+
+.jarvis-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 12px 16px;
+  gap: 8px;
+  background:
+    linear-gradient(transparent 95%, rgba(0, 240, 255, 0.04) 95%) 0 0 / 100% 32px,
+    radial-gradient(ellipse at top, var(--bg-panel) 0%, var(--bg-deep) 70%);
+}
+
+/* ----- Status bar ---------------------------------------------------- */
+
+.jarvis-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 32px;
+  padding: 0 12px;
+  border: var(--border-panel);
+  border-radius: var(--rounded-panel);
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.jarvis-statusbar__group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jarvis-statusbar__group--right {
+  color: var(--text-secondary);
+}
+
+.jarvis-title {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.5em;
+  font-weight: 600;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.4);
+}
+
+.jarvis-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.jarvis-indicator--ok {
+  color: var(--state-speaking);
+}
+
+.jarvis-indicator--down {
+  color: var(--neon-red);
+}
+
+.jarvis-indicator--muted {
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.jarvis-indicator--muted:hover {
+  color: var(--text-secondary);
+}
+
+.jarvis-wakeword-pulse {
+  animation: wakeword-pulse 2s ease-in-out infinite;
+  cursor: pointer;
+}
+
+@keyframes wakeword-pulse {
+  0%, 100% {
+    color: var(--state-speaking);
+    text-shadow: 0 0 4px rgba(0, 204, 136, 0.4);
+  }
+  50% {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+  }
+}
+
+.jarvis-pill {
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.jarvis-pill--ok {
+  color: var(--state-speaking);
+}
+
+.jarvis-pill--down {
+  color: var(--neon-red);
+}
+
+/* ----- Main two-zone grid ------------------------------------------- */
+
+.jarvis-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 8px;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.jarvis-zone {
+  position: relative;
+  border: var(--border-panel);
+  border-radius: var(--rounded-widget);
+  background: var(--bg-panel);
+  padding: 10px 12px;
+  overflow: hidden;
+}
+
+.jarvis-zone__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.jarvis-zone__empty {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ----- Brain zone (center) ------------------------------------------ */
+
+.jarvis-zone--brain {
+  display: flex;
+  flex-direction: column;
+}
+
+.jarvis-brain__center {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.jarvis-brain__commentary {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  font-style: italic;
+  white-space: normal;
+  max-width: 90%;
+  max-height: 3em;
+  overflow-y: auto;
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-word;
+  margin: 8px 0 0 0;
+  animation: jarvis-notification-in 0.2s ease-out;
+}
+
+.jarvis-brain__transcript {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-secondary);
+  white-space: normal;
+  max-width: 90%;
+  max-height: 6em;
+  overflow-y: auto;
+  text-align: center;
+  line-height: 1.5;
+  word-break: break-word;
+  margin: 8px 0 0 0;
+}
+
+.jarvis-brain__transcript--live {
+  color: var(--text-primary);
+}
+
+.jarvis-brain__caret {
+  display: inline-block;
+  color: var(--accent);
+  animation: jarvis-blink 1s steps(1) infinite;
+}
+
+@keyframes jarvis-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ----- Footer (voice bar + input) ----------------------------------- */
+
+.jarvis-footer {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+.jarvis-voicebar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: var(--border-panel);
+  border-radius: var(--rounded-panel);
+  background: var(--bg-panel);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.jarvis-voicebar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--state-idle);
+  box-shadow: 0 0 8px currentColor;
+}
+
+.jarvis-voicebar--listening .jarvis-voicebar__dot { background: var(--state-listening); color: var(--state-listening); animation: jarvis-blink 1s steps(2) infinite; }
+.jarvis-voicebar--speaking .jarvis-voicebar__dot { background: var(--state-speaking); color: var(--state-speaking); }
+.jarvis-voicebar--processing .jarvis-voicebar__dot { background: var(--state-thinking); color: var(--state-thinking); }
+.jarvis-voicebar--error .jarvis-voicebar__dot { background: var(--neon-red); color: var(--neon-red); }
+
+.jarvis-voicebar__label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+}
+
+.jarvis-voicebar__meter {
+  width: 80px;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.jarvis-voicebar__meter-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-cyan-dim), var(--neon-cyan), var(--neon-amber));
+  transition: width 80ms linear;
+}
+
+.jarvis-voicebar__controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.jarvis-voicebar__ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.jarvis-voicebar__ctrl-btn:hover {
+  color: var(--neon-cyan);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.jarvis-inputrow {
+  display: flex;
+  gap: 6px;
+}
+
+.jarvis-input {
+  flex: 1;
+  background: var(--bg-panel);
+  border: var(--border-input);
+  border-radius: var(--rounded-input);
+  color: var(--text-primary);
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  outline: none;
+}
+.jarvis-input:focus { border-color: var(--neon-cyan); box-shadow: 0 0 8px rgba(0, 240, 255, 0.3); }
+.jarvis-input:disabled { color: var(--text-muted); cursor: not-allowed; }
+.jarvis-input::placeholder { color: var(--text-muted); }
+
+/* ----- Push-to-talk mic button --------------------------------------- */
+
+.jarvis-mic-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel);
+  border: var(--border-input);
+  border-radius: var(--rounded-input);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 150ms ease;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+.jarvis-mic-btn:hover {
+  color: var(--neon-cyan);
+  border-color: var(--neon-cyan-dim);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+}
+.jarvis-mic-btn--active {
+  color: var(--neon-red);
+  border-color: var(--neon-red);
+  box-shadow: 0 0 16px rgba(255, 51, 68, 0.5);
+  animation: jarvis-blink 0.6s steps(2) infinite;
+}
+
+/* ----- Status bar indicators ----------------------------------------- */
+
+.jarvis-mic-indicator {
+  color: var(--neon-red);
+  font-size: 14px;
+  animation: jarvis-blink 0.6s steps(2) infinite;
+  text-shadow: 0 0 8px rgba(255, 51, 68, 0.6);
+}
+
+.jarvis-mic-error {
+  color: var(--neon-amber);
+  font-size: 13px;
+  cursor: help;
+}
+
+@keyframes jarvis-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+/* ── Browser URL notification ─────────────────────────────────────────── */
+
+.jarvis-browser-notification {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  margin: 0 auto 6px;
+  max-width: 640px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  animation: jarvis-notification-in 0.25s ease-out;
+}
+
+.jarvis-browser-notification__link {
+  flex: 1;
+  color: var(--neon-cyan);
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jarvis-browser-notification__link:hover {
+  text-decoration: underline;
+}
+
+.jarvis-browser-notification__dismiss {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.jarvis-browser-notification__dismiss:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@keyframes jarvis-notification-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
